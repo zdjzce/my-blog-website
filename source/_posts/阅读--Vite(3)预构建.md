@@ -157,3 +157,7 @@ Vite 提供了 esbuildOptions 参数来自定义 Esbuild 本身的配置：
       }
     }
    ```
+
+#### 总结
+Vite 中的依赖预构建主要解决了两个问题，首先是模块格式兼容 Vite 会把依赖项非 ESM 格式转换为 ESM 格式。其次是项目依赖项可能会有深层依赖，导致不必要的请求，Vite 将依赖项的所有文件合并到一个文件中。
+接着，Vite 的相关配置 entries入口，include 预构建包含包，exclude 预构建排除包，esbuildOptions esbuild配置项。
