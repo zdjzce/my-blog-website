@@ -46,3 +46,114 @@ Vite 项目的启动可以分为两步，第一步是依赖预构建，第二步
 
 ### 自定义配置
 #### 入口文件 entries
+第一个参数是 `optimizeDeps.entries`，通过这个参数可以自定义入口文件。
+实际上，第一次启动 Vite 会默认抓取项目中所有的 HTML 文件，将 HTML 文件作为应用入口，然后根据入口文件扫描出项目中用到的第三方依赖，最后对这些依赖逐个编译。
+除了 HTML 文件，也可以使用文件格式为 vue 的作为入口文件。
+```ts
+// vite.config.ts
+{
+  optimizeDeps: {
+    // 为一个字符串数组
+    entries: ["./src/main.vue"];
+  }
+}
+```
+
+```ts
+// 将所有的 .vue 文件作为扫描入口
+entries: ["**/*.vue"];
+```
+
+不光是 .vue 文件，Vite 同时还支持各种格式的入口，包括 html、svelte、astro、js、jsx、ts和tsx。只要可能存在 import 语句的地方，Vite 都可以解析。
+
+
+#### 添加依赖 include
+除了 `entries`, `include` 也是一个很常用的配置，它决定了可以强制预构建的依赖项。
+```ts
+// vite.config.ts
+optimizeDeps: {
+  // 配置为一个字符串数组，将 `lodash-es` 和 `vue`两个包强制进行预构建
+  include: ["lodash-es", "vue"];
+}
+```
+在使用上并不麻烦，关键的地方在于如何找到使用场景，Vite 会根据应用入口自动搜集依赖然后进行构建，但其实 Vite 并不能够百分之百搜集到所有依赖。这就需要使用 include 来达到完美的预构建效果。
+
+
+##### 场景1 动态 import
+由于 Vite 按需加载源代码的特性，所以动态 import 的场景下，Vite 只会在要加载这个文件的时候才会加载，如果这个动态引入的文件里面引用了其他的包，而这个包的体积恰好很大，那么当文件更改服务就会进行二次构建，页面会进行刷新，体验不是很好，这个时候就可以在 include 中添加相关的依赖，避免不必要的预构建。
+```ts
+// src/locales/zh_CN.js
+import objectAssign from "object-assign";
+console.log(objectAssign);
+
+// main.tsx
+const importModule = (m) => import(`./locales/${m}.ts`);
+importModule("zh_CN");
+```
+
+```ts
+// vite.config.ts
+{
+  optimizeDeps: {
+    include: [
+      // 按需加载的依赖都可以声明到这个数组里
+      "object-assign",
+    ];
+  }
+}
+```
+
+
+#### Esbuild
+Vite 提供了 esbuildOptions 参数来自定义 Esbuild 本身的配置：
+```ts
+// vite.config.ts
+{
+  optimizeDeps: {
+    esbuildOptions: {
+       plugins: [
+        // 加入 Esbuild 插件
+      ];
+    }
+  }
+}
+```
+
+##### 特殊情况
+当第三方包出现问题，例如某个包在预构建的时候可能会直接抛出错误，ESM 格式产物可能会有问题，这时候通常会去排查问题，追溯到出错的代码。而解决方式有两种：
+1. 修改源码 但这种改动需要同步到所有成员，麻烦。可以使用 patch-package 这个库来解决问题，一方面它能记录第三方库代码的改动，另一方面也能将改动同步到团队每个成员。
+2. 加入 Esbuild 插件
+   第二种方式是通过 Esbuild 插件修改指定模块的内容。
+   ```ts
+      // vite.config.ts
+    const esbuildPatchPlugin = {
+      name: "react-virtualized-patch",
+      setup(build) {
+        build.onLoad(
+          {
+            filter:
+              /react-virtualized\/dist\/es\/WindowScroller\/utils\/onScroll.js$/,
+          },
+          async (args) => {
+            const text = await fs.promises.readFile(args.path, "utf8");
+
+            return {
+              contents: text.replace(
+                'import { bpfrpt_proptype_WindowScroller } from "../WindowScroller.js";',
+                ""
+              ),
+            };
+          }
+        );
+      },
+    };
+
+    // 插件加入 Vite 预构建配置
+    {
+      optimizeDeps: {
+        esbuildOptions: {
+          plugins: [esbuildPatchPlugin];
+        }
+      }
+    }
+   ```
