@@ -283,3 +283,22 @@ let examplePlugin = {
 ```
 1. onStart 的执行时机是在每次 build 的时候，包括触发 watch 或者 serve模式下的重新构建。
 2. onEnd 钩子中如果要拿到 metafile，必须将 Esbuild 的构建配置中metafile属性设为 true。
+
+
+### CDN 依赖拉取插件
+Esbuild 原生不支持通过 HTTP 从 CDN 服务上拉取对应的第三方依赖资源:
+```js
+import { render } from "https://cdn.skypack.dev/react-dom";
+import React from 'https://cdn.skypack.dev/react'
+
+let Greet = () => <h1>Hello, juejin!</h1>;
+
+render(<Greet />, document.getElementById("root"));
+```
+
+在这里将引用换成了 `Skypack` 这个提供 npm 第三方包 ESM 产物的 `CDN服务`，可以通过 url 访问第三方包的资源。
+现在需要通过 Esbuild 插件来识别这样的 url 路径，然后从网络获取模块内容让 Esbuild 进行加载, 并且在构建时将依赖进行打包，甚至不需要 npm install 安装依赖了。
+
+ESM CDN 作为面向未来的前端基础设施，对 Vite 的影响也至关重大，可以极大提升 Vite 在生产环境下的构建性能。
+
+
