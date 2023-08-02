@@ -168,4 +168,141 @@ output: {
 
 
 ### 5. 插件
-虽然 Rollup 能够打包输出出 CommonJS 格式的产物，但对于输入给 Rollup 的代码并不支持 CommonJS，仅仅支持 ESM。
+虽然 Rollup 能够打包输出出 CommonJS 格式的产物，但对于输入给 Rollup 的代码并不支持 CommonJS，仅仅支持 ESM。并且如果需要`注入环境变量`，`配置路径别名`，`压缩产物代码`等等，就需要引入相应的 Rollup 插件。
+
+如果要支持第三方 CJS 的依赖，就需要安装两个核心的插件:
+```zsh
+pnpm i @rollup/plugin-node-resolve @rollup/plugin-commonjs 
+```
+
+- `@rollup/plugin-node-resolve` 是为了能够加载第三方依赖。否则 `import 'xx' from 'xx'` 不会被识别。
+- `@rollup/plugin-commonjs` 是将 CJS 格式转换为 ESM 格式。
+
+接着将插件放入 plugins 中：
+```js
+import resolve from "@rollup/plugin-node-resolve";
+import commonjs from "@rollup/plugin-commonjs";
+{
+  ...其他配置
+  plugins: [resolve(), commonjs()],
+}
+
+```
+
+插件除了可以放在 plugins 中，也可以放在 output 选项下的 plugins 中。不过只有使用 `Output` 阶段的相关钩子才能放在这个配置里。
+
+Rollup 常用插件：
+- @rollup/plugin-json： 支持.json的加载，并配合rollup的Tree Shaking机制去掉未使用的部分，进行按需打包。
+- @rollup/plugin-babel：在 Rollup 中使用 Babel 进行 JS 代码的语法转译。
+- @rollup/plugin-typescript: 支持使用 TypeScript 开发。
+- @rollup/plugin-alias：支持别名配置。
+- @rollup/plugin-replace：在 Rollup 进行变量字符串的替换。
+- rollup-plugin-visualizer: 对 Rollup 打包产物进行分析，自动生成产物体积可视化分析图。
+- rollup-plugin-terser: 压缩产物代码
+
+
+## JavaScript Api 方式调用
+上面都是通过 Rollup 的配置文件结合 `rollup -c` 完成打包。但有些场景需要定制一些打包过程，配置文件就不够灵活了。这个时候就需要 `JavaScript API` 来调用 Rollup，主要分为 `rollup.rollup` 和 `rollup.watch` 两个 API。
+
+`rollup.rollup`: 用来一次性进行打包，新建 `build.js` 内容如下：
+```js
+// build.js
+const rollup = require("rollup");
+
+// 常用 inputOptions 配置
+const inputOptions = {
+  input: "./src/index.js",
+  external: [],
+  plugins:[]
+};
+
+const outputOptionsList = [
+  // 常用 outputOptions 配置
+  {
+    dir: 'dist/es',
+    entryFileNames: `[name].[hash].js`,
+    chunkFileNames: 'chunk-[hash].js',
+    assetFileNames: 'assets/[name]-[hash][extname]',
+    format: 'es',
+    sourcemap: true,
+    globals: {
+      lodash: '_'
+    }
+  }
+  // 省略其它的输出配置
+];
+
+async function build() {
+  let bundle;
+  let buildFailed = false;
+  try {
+    // 1. 调用 rollup.rollup 生成 bundle 对象
+    bundle = await rollup.rollup(inputOptions);
+    for (const outputOptions of outputOptionsList) {
+      // 2. 拿到 bundle 对象，根据每一份输出配置，调用 generate 和 write 方法分别生成和写入产物
+      const { output } = await bundle.generate(outputOptions);
+      await bundle.write(outputOptions);
+    }
+  } catch (error) {
+    buildFailed = true;
+    console.error(error);
+  }
+  if (bundle) {
+    // 最后调用 bundle.close 方法结束打包
+    await bundle.close();
+  }
+  process.exit(buildFailed ? 1 : 0);
+}
+
+build();
+
+```
+
+执行步骤如下：
+1. 通过 rollup.rollup 方法传入 inputOptions, 生成 bundle 对象
+2. 通过 bundle 对象的 generate 和 write 传入 `outputOptions`, 分别完成产物生成和磁盘写入。
+3. 调用 bundle 对象的 close 方法结束打包。
+
+`rollup.watch` 源文件变动后自动打包:
+```js
+// watch.js
+const rollup = require("rollup");
+
+const watcher = rollup.watch({
+  // 和 rollup 配置文件中的属性基本一致，只不过多了`watch`配置
+  input: "./src/index.js",
+  output: [
+    {
+      dir: "dist/es",
+      format: "esm",
+    },
+    {
+      dir: "dist/cjs",
+      format: "cjs",
+    },
+  ],
+  watch: {
+    exclude: ["node_modules/**"],
+    include: ["src/**"],
+  },
+});
+
+// 监听 watch 各种事件
+watcher.on("restart", () => {
+  console.log("重新构建...");
+});
+
+watcher.on("change", (id) => {
+  console.log("发生变动的模块id: ", id);
+});
+
+watcher.on("event", (e) => {
+  if (e.code === "BUNDLE_END") {
+    console.log("打包信息:", e);
+  }
+});
+
+```
+
+## 小结
+首先，学习了 Rollup 一般的使用方法，用 Rollup 打包出了第一份产物，然后使用 Rollup 中常用的配置项，包括input、output、external、plugins等核心配置，并以一个实际的打包场景在 Rollup 中接入插件功能。接着，尝试了 Rollup 更高级的使用姿势——通过 JavaScript API 使用两个经典的 API: rollup.rollup和rollup.watch。
