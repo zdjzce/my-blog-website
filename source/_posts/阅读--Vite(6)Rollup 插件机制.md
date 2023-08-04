@@ -143,3 +143,38 @@ Rollup 可以根据 Build 和 Output 两个构建阶段分为两类 Hook `Build 
   并行的钩子函数，如果有多个插件实现了这个钩子的逻辑，一旦有钩子函数是异步逻辑则并发执行，不会等待当前钩子完成(底层使用 `Promise.all`)
   比如 `Build` 阶段的 `buildStart` 钩子，它的执行时机其实是在构建刚开始，插件可以做一些状态初始化。但插件之间的操作并不需要相互依赖。也就是可以并发执行。从而提升构建性能。如果需要依赖其他插件的处理结果就不适合用此钩子，比如 `transform`
 3. **Sequential**
+  串行钩子，插件间处理结果相互依赖的情况。前一个插件 Hook 的返回值作为后续插件的入参，需要等前一个插件执行完才能进行下一个插件 Hook 的调用，比如 `transform`。
+4. **First**
+   如果有多个插件实现了这个 Hook，会依次运行，直到返回非 null 或非 undefined 的值为止。比如 resolveId，一旦有插件的 resolveId 返回了一个路径，将停止后续插件的 resolveId 逻辑。
+
+#### Build 阶段工作流
+![avatar](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/58ce9fa2b0f14dd1bc50a9c849157e43~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp)
+1. options 钩子进行配置转换，得到处理后的配置对象。
+2. 调用 `buildStart` 钩子，开始构建流程
+3. 进入到 `resolveId` 钩子解析文件路径。（从 input 入口文件开始）
+4. `load` 钩子加载模块
+5. 执行 `transform` 钩子对模块内容进行转换，比如 babel
+6. 拿到最后的模块内容，进行 AST 分析，得到所有 import 内容。调用 moduleParsed 钩子。
+   - 如果是普通 import, 执行 resolveId 钩子，继续回到步骤3
+   - 如果是动态 import, 执行 `resolveDynamicImport` 钩子解析路径，如果解析成功，则回到步骤 4 加载模块，否则回到步骤3。
+7. 所有 import 都解析完，执行 `buildEnd` 钩子，Build 阶段结束。
+
+若在解析路径时已经在 external 中添加相关依赖，就不会参与打包过程。
+
+`watchChange` 和 `closeWatcher` 这两个 Hook，使用 `rollup --watch` 或者配置了 `watch: true`，Rollup 会在内部初始化一个 watcher 对象，内容发生变化，watcher 对象会自动触发 `watchChange` 钩子执行并对项目进行重新构建。在当前打包过程结束，Rollup 会自动清除 watcher 对象调用 `closeWatcher` 钩子
+
+#### Output 工作流
+![avatar](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/fd1da89135034f3baa25c7349a79bd91~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp)
+![avatar](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5dc4935d712d451fb6978fad46dd7b74~tplv-k3u1fbpfcp-zoom-in-crop-mark:3024:0:0:0.awebp)
+1. 执行 `outputOptions` 钩子函数，对 `output` 配置进行转换
+2. 并发执行 `renderStart` 钩子，开始打包
+3. 并发执行所有插件的 `banner`,`footer`,`intro`,`outro` 钩子（底层用 Promise.all ）
+4. 从入口开始扫描，针对动态 import 执行 `renderDynamicImport` 钩子，来自定义动态 import 的内容。
+5. 对即将生成的 `chunk` 执行 `augmentChunkHash` 钩子，来决定是否更改 chunk 的哈希值，在 `watch` 模式下即多次打包场景下，这个钩子比较有用
+6. 如果没有遇到 `import.meta`，则进入下一步否则：
+   - 对于 `import.meta.url` 语句调用 `resolveFileUrl` 来自定义 url 解析逻辑。
+   - 对于其他 import.meta 使用 `resolveImportMeta` 进行自定义解析。
+7. 生成所有 chunk 内容，针对每个 `chunk` 会依次调用插件的 `renderChunk` 方法进行自定义操作。在这一步能够直接操作打包产物。
+8. 调用 `generateBundle` 钩子，钩子入参包含所有打包产物信息，包括 `chunk`、`assets`。
+9. `rollup.rollup` 方法会返回一个 `bundle` 对象，对象包含 `generate` 和 `write` 方法。方法的区别在于后者会将代码写入到磁盘。同时触发`writeBundle` 钩子。传入所有的打包产物信息，包括 chunk 和 asset, 和 `generateBundle` 钩子非常相似。不过 `generateBundle`的时候产物并没有输出。
+10. bundle 的 close 方法被调用时，会触发 `closeBundle` 钩子，output阶段结束。
