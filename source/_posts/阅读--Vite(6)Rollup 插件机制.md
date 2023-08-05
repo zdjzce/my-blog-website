@@ -178,3 +178,12 @@ Rollup 可以根据 Build 和 Output 两个构建阶段分为两类 Hook `Build 
 8. 调用 `generateBundle` 钩子，钩子入参包含所有打包产物信息，包括 `chunk`、`assets`。
 9. `rollup.rollup` 方法会返回一个 `bundle` 对象，对象包含 `generate` 和 `write` 方法。方法的区别在于后者会将代码写入到磁盘。同时触发`writeBundle` 钩子。传入所有的打包产物信息，包括 chunk 和 asset, 和 `generateBundle` 钩子非常相似。不过 `generateBundle`的时候产物并没有输出。
 10. bundle 的 close 方法被调用时，会触发 `closeBundle` 钩子，output阶段结束。
+
+
+
+#### 总结
+![avatar](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/a353a4349c124b108a223f29bf8fc9e8~tplv-k3u1fbpfcp-jj-mark:3024:0:0:0:q75.avis)
+Rollup 的插件开发整体上是非常简洁和灵活的，总结为以下几个方面:
+- 插件逻辑集中管理。各个阶段的 Hook 都可以放在一个插件中编写，比如上述两个 Webpack 的 Loader 和 Plugin 功能在 Rollup 只需要用一个插件，分别通过 transform 和 renderChunk 两个 Hook 来实现。
+- 插件 API 简洁，符合直觉。Rollup 插件基本上只需要返回一个包含 name 和各种钩子函数的对象即可，也就是声明一个 name 属性，然后写几个钩子函数即可。
+- 插件间的互相调用。比如刚刚介绍的alias插件，可以通过插件上下文对象的resolve方法，继续调用其它插件的 resolveId钩子，类似的还有load方法，这就大大增加了插件的灵活性。
