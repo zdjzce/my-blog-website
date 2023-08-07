@@ -257,5 +257,163 @@ export default function testHookPlugin () {
 
 
 ### 4. 应用位置
+默认插件可以同时被应用在开发和生产环境，可以通过 `apply` 属性来决定应用场景：
+```js
+{
+  // server 开发，build 生产
+  apply: 'serve'
+}
+```
+也可以配置成一个函数：
+```js
+apply(config, { command }) {
+  // 只用于非 SSR 情况下的生产环境构建
+  return command === 'build' && !config.build.ssr
+}
+```
+
+通过 `enforce` 属性可以指定执行顺序。
+```js
+{
+  // 默认为`normal`，可取值还有`pre`和`post`
+  enforce: 'pre'
+}
+```
+插件执行顺序：
+![avatar](https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/d06b07cd29434ec9af7f9ea3fd39cba0~tplv-k3u1fbpfcp-jj-mark:3024:0:0:0:q75.avis)
+
+
 ### 5. 虚拟模块加载插件
+首先需要明确的是：什么是虚拟模块：
+构建工具一般处理两种形式的模块：
+1. 存在磁盘文件系统中的模块
+2. 在内存中，也就是虚拟模块。
+通过虚拟模块可以把自己写的一些代码作为单独的模块内容，并且可以将内存中某些经过计算得出的变量作为模块内容进行加载。
+
+首先用 Vite 启动一个 Vue + TS 项目。
+```
+pnpm create vite
+```
+
+新建一个虚拟模块插件：
+```ts
+import { Plugin } from "vite";
+
+
+const virtualModuleName = 'virtual:module'
+// Vite规定如果是虚拟模块，路径前需要加上 \0
+const virtualModuleId = '\0' + virtualModuleName
+
+function virtualModulePlugin(): Plugin {
+  return {
+    name: 'vite-plugin-virtual-module',
+    resolveId: function (id) {
+      console.log('resolve path id:', id)
+      console.log('arguments---------', arguments)
+      if (id === virtualModuleName) {
+        return virtualModuleId
+      }
+    },
+    load: (id) => {
+      console.log('require id:', id)
+      if (id === virtualModuleId) {
+        // 加载虚拟模块
+        return 'export default { test: "i am test value" }'        
+      }
+    }
+
+  }
+}
+
+
+export { 
+  virtualModulePlugin
+}
+```
+
+在这个插件中声明了虚拟模块的名字，需要注意的是 Vite 规定虚拟模块名前需要加上 `\0`。
+在 `resolveId` 钩子中获取当前引入模块的路径，如果是虚拟模块名则返回加上 `\0` 的路径。
+再使用 load 钩子在加载模块时判断是否为虚拟模块路径，是则加载指定虚拟模块。
+
+接着在 vite.config.ts 中使用这个插件：
+```ts
+export default defineConfig({
+  plugins: [vue(),  virtualModulePlugin()],
+})
+```
+
+在 .vue 文件中引入指定的虚拟模块，并且在视图中使用暴露出来对象的变量：
+```vue
+<template>
+  <div>
+    {{testRef.test}}
+  </div>
+</template>
+<script lang="ts" setup>
+import test from 'virtual:module'
+import { ref } from 'vue';
+const testRef = ref(test) as { test: string };
+
+</script>
+```
+
+启动服务后会发现写入的虚拟模块生效了。对象中的变量成功展示在视图里。
+
+接着可以添加如下代码，功能大致如下：将 config 保存在闭包中，在后方的钩子中读取对应的 config，在其他文件引入时可以直接获取配置项
+```diff
+import { Plugin, ResolvedConfig } from "vite";
+
+
+const virtualModuleName = 'virtual:module'
+// Vite规定如果是虚拟模块，路径前需要加上 \0
+const virtualModuleId = '\0' + virtualModuleName
+
++ const virtualEnvName = 'virtual:env'
++ const virtualEnvId = '\0' + virtualEnvName
+
+function virtualModulePlugin(): Plugin {
+
+  let env: ResolvedConfig | null = null
+
+  return {
+    name: 'vite-plugin-virtual-module',
++   configResolved: (config) => {
++     env = config
++   },
+    resolveId: function (id) {
+      console.log('resolve path id:', id)
+      console.log('arguments---------', arguments)
+      if (id === virtualModuleName) {
+        return virtualModuleId
+      }
+
++     if (id === virtualEnvName) {
++       return virtualEnvId
++     }
+
+    },
+    load: (id) => {
+      console.log('require id:', id)
+      if (id === virtualModuleId) {
+        // 加载虚拟模块
+        return 'export default { test: "i am test value" }'        
+      }
+
++     if (id === virtualEnvId) {
++       return `export default ${JSON.stringify(env)}`
++     }
+    }
+
+  }
+}
+
+
+export { 
+  virtualModulePlugin
+}
+```
+
+接着在 .vue 文件中引入 `virtual:env` 虚拟模块，在 onMounted 钩子中打印导入的 env，会发现 config 虚拟模块已经成功获取到了，说明在内存中计算出来的 `virtual:env` 模块已经成功加载。虚拟模块的灵活性和可定制化程度高而且实用性也强，在 Vite 内部的插件被深度使用，社区中也有很多插件使用了虚拟模块的技术(vite-plugin-windicss、vite-plugin-svg-icons)
+
 ### 6. svg 加载插件
+
