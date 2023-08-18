@@ -6,7 +6,7 @@ tags:
   - 面试题
   - Vite
   - Esbuild
-categories
+categories:
   - [阅读]
 ---
 

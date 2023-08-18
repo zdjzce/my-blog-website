@@ -6,7 +6,7 @@ tags:
   - 面试题
   - Vite
   - Rollup
-categories
+categories:
   - [阅读]
 ---
 

@@ -5,7 +5,7 @@ tags:
   - 阅读
   - 面试题
   - Vite
-categories
+categories:
   - [阅读]
 ---
 xxxx
