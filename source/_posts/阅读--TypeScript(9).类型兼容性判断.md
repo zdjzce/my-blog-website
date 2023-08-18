@@ -79,3 +79,40 @@ addCNY(CNYCount, USDCount); // 不会报错 TS 只会检查类型
 ### 模拟标称类型系统
 如何区分两个类型它们是不同的？其实就是通过类型附带的额外信息来实现，要在 TS 中实现，其实也只需要为类型额外附加信息即可，比如 CNY 和 USD 分别附加上单位信息，同时也要保留原本的信息（number 类型）
 
+通过交叉类型的方式来实现信息的附加：
+```ts
+export declare class TagProtector<T extends string> {
+  protected __tag__: T;
+}
+
+export type Nominal<T, U extends string> = T & TagProtector<U>;
+
+export type CNY = Nominal<number, 'CNY'>
+export type USD = Nominal<number, 'USD'>
+
+const CNYCount = 100 as CNY;
+
+const USDCount = 100 as USD;
+
+function addCNY(source: CNY, input: CNY) {
+  return (source + input) as CNY;
+}
+
+addCNY(CNYCount, CNYCount);
+
+// 报错了！
+addCNY(CNYCount, USDCount);
+
+```
+在这里，本质上只在类型层面做了数据处理，其中 Nominal  是一个 TypeScript 的工具类型, 用于创建名义类型, 有时我们希望能够创建两个结构相同但是内部有不同的标识的类型，这就是名义类型。而受保护的 __tag__ 就是他们的标识。
+
+在 type-fest 中也通过 Opaque Type 支持了类似的功能，其实现如下：
+```ts
+declare const tag: unique symbol;
+
+declare type Tagged<Token> = {
+    readonly [tag]: Token;
+};
+
+export type Opaque<Type, Token = unknown> = Type & Tagged<Token>;
+```
