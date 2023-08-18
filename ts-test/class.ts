@@ -13,5 +13,3 @@ function testFun(strOrNumOrBool: string | number | boolean) {
     throw new Error(`Unknown input type: ${_exhaustiveCheck}`);
   }
 }
-
-testFun(()=>{})
