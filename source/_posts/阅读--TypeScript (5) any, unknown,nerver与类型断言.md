@@ -3,7 +3,6 @@ title: 阅读--TypeScript(5) any, unknown, never
 date: 2023-05-21 19:02:30
 tags:
   - 阅读
-  - 面试题
   - TypeScript
 categories:
   - [阅读]

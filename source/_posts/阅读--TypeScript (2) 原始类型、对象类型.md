@@ -3,7 +3,6 @@ title: 阅读--TypeScript(2) 原始类型、对象类型
 date: 2023-05-03 23:24:00
 tags:
   - 阅读
-  - 面试题
   - TypeScript
 categories:
   - [阅读]

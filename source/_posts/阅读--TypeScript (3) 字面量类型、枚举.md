@@ -3,7 +3,6 @@ title: 阅读--TypeScript(3) 字面量类型、枚举
 date: 2023-05-04 09:42:30
 tags:
   - 阅读
-  - 面试题
   - TypeScript
 categories:
   - [阅读]

@@ -1,9 +1,8 @@
 ---
-title: 阅读--Vite(5) Rollup
+title: 阅读--Vite(6) Rollup 插件机制
 date: 2023-08-02 17:00:00
 tags:
   - 阅读
-  - 面试题
   - Vite
   - Rollup
 categories:

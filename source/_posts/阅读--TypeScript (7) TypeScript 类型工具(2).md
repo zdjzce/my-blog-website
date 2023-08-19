@@ -3,7 +3,6 @@ title: 阅读--TypeScript(7) TypeScript 类型工具(2)
 date: 2023-06-04 20:42:30
 tags:
   - 阅读
-  - 面试题
   - TypeScript
 categories:
   - [阅读]
