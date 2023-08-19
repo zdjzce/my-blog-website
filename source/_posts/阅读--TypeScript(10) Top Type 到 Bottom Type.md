@@ -1,6 +1,6 @@
 ---
 title: 阅读--TypeScript(10) Top Type 到 Bottom Type
-date: 2023-08-19 16:45:12
+date: 2023-08-20 01:45:12
 tags:
   - 阅读
   - TypeScript
@@ -78,3 +78,79 @@ type Result21 = {} extends Object ? 1 : 2; // 1
 可以得出结论： 原始类型 < 装箱类型 < Object 类型
 
 ### Top Type
+TS 类型中，最顶端的就是 any, unknown 这两个类型。因此，Object 类型自然会是 any 与 unknown 类型的子类型。
+```ts
+type Result22 = Object extends any ? 1 : 2 // 1
+type Result23 = Object extends unknown ? 1 : 2 // 1
+```
+
+如果将条件类型的两端对调一下：
+```ts
+type Result24 = any extends Object ? 1 : 2 // 1 | 2
+type Result25 = unknown extends Object ? 1 : 2 // 2 
+```
+
+看起来有点匪夷所思，但仔细想想, any 代表了任何可能的类型，当使用 any extends 时。它其实同时包含了两个部分，即让条件成立的一部分，以及让条件不成立的一部分。在 TS 内部的条件类型处理中，如果接受判断的是 any，那么会直接返回条件结果组成的联合类型。
+
+any 在赋值给其他类型时来者不拒，但 unknown 则只允许赋值给 unknown 类型和 any 类型。这也好理解，因为它代表着 '不知道的类型'，赋值给其他类型岂不是也代表着其他类型也是未知的？
+
+any 类型和 unknown 类型的比较也是相互成立的：
+```ts
+type Result31 = any extends unknown ? 1 : 2  // 1
+type Result32 = unknown extends any ? 1 : 2  // 1
+```
+
+那么接着其实就可以得出类型层级的结论:  Object < any / unknown
+
+
+### Bottom Type
+TS 内置的 Bottom Type 代表了 ‘虚无’ 的类型，一个根本不存在的类型，对于这样的类型，它会是`任何类型的子类型`，也包括字面量类型：
+```ts
+type Result33 = never extends '123' ? 1 : 2 // 1
+type Result34 = never extends string ? 1 : 2 // 1
+```
+那么 null / undefined / void 又代表什么呢？在 TS 中他们只是基础类型，比 never 还要高一个层级。和 string / number / object 病灭有什么区别
+所以可以得出结论 never < 字面量类型。
+
+
+### 类型层级链
+接下来基于上面的结论，就可以得出完整的类型层级链：
+```ts
+
+type TypeChain = never extends 'zdj' ? 'zdj' extends string ? string extends String ? String extends {} ? {} extends object ? object extends Object ? Object extends any ? any extends unknown ? unknown extends unknown ? 1 : 2 : 3: 4 : 5: 6 : 7 : 8 : 9 : 10 // 1
+```
+
+
+### 其他比较场景
+对于基类和派生类，派生类本身就是继承于基类，有着自己的属性和方法，如果将派生类与基类进行比较，那么在 TS 中会进行结构化类型比较，类型必然会存在子类型关系。
+
+联合类型的判断，前面只判断了联合类型的单个成员，如果是多个成员：
+```ts
+type Result35 = 1 | 2 | 3 extends 1 | 2 | 3 | 4 | 5 ? 1 : 2  // 1
+type Result36 = '1' | '2' | '3' extends '1' | '2' | '3' | '4' | '5' ? 1 : 2  // 1
+type Result37 = 1 | 2 | 3 extends 1 | 4 | 5 ? 1 : 2  // 2
+```
+实际上，对于联合类型的比较，只要看一个联合类型是否是一个联合类型的子集就知道结果了。
+
+对于数组的比较会稍微有些特殊，对于元组与数组会稍有不同，下面是例子：
+```ts
+type Result38 = [number, string] extends number[] ? 1 : 2 // 1
+type Result39 = [number, string] extends number[] ? 1 : 2  // 2
+type Result40 = [number, string] extends (number | string)[] ? 1 : 2 // 1
+
+type Result41 = any[] extends number[] ? 1 : 2 // 1
+type Result42 = unknown extends number[] ? 1 : 2 // 2
+type Result43 = never extends number[] ? 1 : 2 // 1
+```
+
+对于 39 元组中包含了 string 类型，所以不成立。
+对于 40 要求条件为 (number | string) 联合类型中的任意类型组成的数组，所以成立。
+
+
+最后可以完全得出类型层级的结构：
+TopType: any unknown
+顶级原型: Object
+装箱类型: String Number Boolean Symbol Array object Date Function Promise RegExp Map
+基础类型: string number boolean undefined null symbol
+字面量类型: 1  '1' true ...
+Bottom Type: never
