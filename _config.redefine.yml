@@ -167,7 +167,7 @@ navbar:
     About: 
       icon: fa-regular fa-user
       submenus:
-        Github: https://github.com/EvanNotFound/hexo-theme-redefine
+        Github: https://github.com/zdjzce923
         掘金: https://juejin.cn/user/1846831805373687/posts
     Tags:
       path: /tags
