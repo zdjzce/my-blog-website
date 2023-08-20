@@ -93,3 +93,115 @@ type ArrayItem2 = ArrayItemType<[]> // never
 type ArrayItem3 = ArrayItemType<[string, number]>  // string | number
 ```
 
+在 TS 中元组是特殊的值，infer ElementType 会提取出联合类型  string | number，而不是数组类型 [string, number]。
+
+除了数组，infer 结构也可以是接口：
+```ts
+// 提取对象属性值类型
+type PropType<T, K extends keyof T> = T extends { [Key in k]: infer R } ? R : never
+type Prop1 = PropType<{ name: string }, 'name'> // string
+
+// 反转键名与键值
+type ReverseKeyValue<T extends Record<string, unknown>> = T extends Record<infer K, infer V> ? Record<V & string, K> : never
+type ReverseKeyValueResult1 = ReverseKeyValue<{ "key": "value" }>; // { "value": "key" }
+```
+
+为了体现 infer 作为类型工具的属性，这里结合了索引类型与映射类型，以及使用 & string 来确保属性名为 string 类型。
+如果不使用 & 而是:
+```ts
+// 类型“V”不满足约束“string | number | symbol”。
+type ReverseKeyValue<T extends Record<string, string>> = T extends Record<
+  infer K,
+  infer V
+>
+  ? Record<V, K>
+  : never;
+```
+将会报错，因为泛型参数 V 的来源是从键值类型推导出来的，TS 中这样对键值类型进行 infer 推导，会导致类型信息丢失，不满足索引 string | number | symbol 的要求。
+
+至于映射类型的判断条件，需要同时满足两端的类型，使用 `V & string` 就能确保类型参数 V 一定会满足 `string | never`。
+
+
+infer 结构还可以是 Promise 结构：
+```ts
+type PromiseValue<T> = T extends Promise<infer V> ? V : T;
+
+type PromiseValueResult1 = PromiseValue<Promise<number>>; // number
+type PromiseValueResult2 = PromiseValue<number>; // number，但并没有发生提取
+```
+
+infer 会经常出现在嵌套场景中，如果使用了嵌套的 Promise 类型：
+```ts
+type PromiseValueResult3 = PromiseValue<Promise<Promise<boolean>>>; // Promise<boolean>，只提取了一层
+```
+
+这个时候就需要进行嵌套提取：
+```ts
+type PromiseValue<T> = T extends Promise<infer V>
+  ? V extends Promise<infer N>
+    ? N
+    : V
+  : T;
+```
+
+最好的解决办法使用递归来处理任意嵌套深度：
+```ts
+type PromiseValue<T> = T extends Promise<infer V> ? PromiseValue<V> : T;
+```
+
+条件类型在泛型的基础上支持了基于类型信息的动态条件判断，但无法直接消费填充类型信息，而 infer 关键字则为它补上了这一部分的能力。
+
+
+### 分布式条件类型
+分布式条件类型听起来很高级，但其实它指的是**条件类型的分布式特性**，只不过是条件类型在满足一定情况下会执行的逻辑。
+```ts
+type Condition<T> = T extends 1 | 2 | 3 ? T : never
+
+// 1 | 2 | 3
+type Rest1 = Condition<1 | 2 | 3 | 4 | 5> 
+
+// never
+type Res2 = 1 | 2 | 3 | 4 | 5 extends 1 | 2 | 3 ? 1 | 2 | 3 | 4 | 5 : never;
+```
+
+在 Rest1 中，进行判断的联合类型被作为泛型参数传入另一个独立的类型别名，而 Rest2 中直接对这两者进行判断。他们两者的第一个差异就是：**是否通过泛型参数传入**
+
+再看另一个例子:
+```ts
+type Naked<T> = T extends boolean ? "Y" : "N";
+type Wrapped<T> = [T] extends [boolean] ? "Y" : "N";
+
+// "N" | "Y"
+type Res3 = Naked<number | boolean>;
+
+// "N"
+type Res4 = Wrapped<number | boolean>;
+```
+
+第二个好理解，元组中可能会是 number 不兼容 boolean 类型。但是例子一就显得很诡异，两个例子唯一的差异是条件类型中的泛型参数**是否被数组包裹**。
+同时，在 Rest3 的判断中，其联合类型的两个分支，正好对应 number 和 boolean 去分别判断后的结果。
+
+所以分布式条件类型起作用的条件，`类型参数需要是一个联合类型`。其次，`类型参数需要通过泛型传入`。最后，`条件类型中的泛型参数不能被包裹`。
+
+所以分布式条件类型产生的效果就是：把联合类型拆开来每个分支分别进行判断，再将最后的结果组合起来。
+
+官方解释为：对于属于裸类型参数的检查类型，条件类型会在实例化时期自动分发到联合类型上。（Conditional types in which the checked type is a naked type parameter are called distributive conditional types. Distributive conditional types are automatically distributed over union types during instantiation.）
+
+所谓的自动分发可以理解为各个分支不同的判断最后再进行组合。而裸类型指的就是泛型参数没有被包裹。
+
+如果不希望进行联合类型成员的分布判断，而是希望直接判断这两个联合类型的兼容性判断，就像在最初的 Res2 中那样：
+```ts
+type CompareUnion<T, U> = [T] extends [U] ? true : false;
+
+type CompareRes1 = CompareUnion<1 | 2, 1 | 2 | 3>; // true
+type CompareRes2 = CompareUnion<1 | 2, 1>; // false
+```
+
+ 而最实用的场景是，求交集：
+ ```ts
+type Intersection<A, B> = A extends B ? A : never
+
+type IntersectionRes = Intersection<1 | 2 | 3 | 4 | 5, 1 | 2 | 3>
+ ```
+
+ 
