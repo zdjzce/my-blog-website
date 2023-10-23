@@ -8,8 +8,14 @@ categories:
   - [阅读]
 ---
 
-原文链接：https://jvns.ca/blog/2023/10/06/new-talk--making-hard-things-easy/
-本文对 Julia Evans 写的这篇博客进行总结。
+原文链接：https://jvns.ca/blog/2023/10/06/new-talk--making-hard-things-easy/ ，本文对 Julia Evans 写的这篇博客进行总结。
+作者举出四个语言（Bash、HTTP、MySQL、DNS）的一些小例子并且结合遇到的问题进行解读，说出一套将事情变得简单的方法。
+
+以下均使用第一人称进行描述。
+
+
+### Bash
+Bash 是我们不常用的脚本语言，也许半年？一年甚至数年才会编写一次 bash 代码。这导致我们遇到问题往往会很慌张，以下是一个例子：
 
 ``` bash
 f() {
@@ -19,13 +25,17 @@ f() {
 
 f
 ```
-
+现在我们需要将当前所有后缀为 `.txt` 的文件移动到 tmp 文件夹中，但当前目录中并没有 tmp 这个文件夹，因此我们按照编码经验来说，希望它会抛出异常。但事实不是如此。
 即使当前目录下没有名为 tmp 的文件夹并且执行报错，bash 依然会打印出 success。
 
-
-在顶部加入 `set -e` 后，将不会打印 success
-
+然后我了解到在 bash 顶部加入 set-e 可以让 bash 遇到错误停止运行代码, 加入后这将不会打印 success：
 ```bash
+set -e
+```
+
+现在我想在跳出错误后能够打印 `failed`，但神奇的事情发生了。
+```bash
+set -e
 f() {
   mv *.txt ./tmp
   echo "success"
@@ -39,23 +49,26 @@ log:
 mv: rename *.txt to ./tmp: No such file or directory
 success
 ```
-
 在调用 f 函数后并且试图打印 `echo failed` 竟然 tmd 又打印出了 success ???
 
 竟然是因为 `|| echo "failed"` 不能在全局与 `set -e` 一起使用？？
 
-以上仅是一个示例，作者有一点说的很对：当我们很久不使用某个语言或者工具，会遇到很多奇怪且琐碎的问题，让我们感到困扰。那么怎么样才能让这样的事情变得简单？我们又能怎么做呢？
+以上仅是一个示例，当我们很久不使用某个语言或者工具，会遇到很多奇怪且琐碎的问题，让我们感到困扰。那么怎么样才能让这样的事情变得简单？我们又能怎么做呢？要怎么从对一个东西毫不了解，过渡到能够基本正确使用一个工具或者语言呢？
 
-> One thing that I sometimes hear is -- a newcomer will say "this is hard", and someone more experienced will say "Oh, yeah, it's impossible to use bash. Nobody knows how to use it."  ----  还蛮有意思的，新手觉得太难，老鸟说这玩意儿不可能用，没人直到怎么用这玩意儿。
+> One thing that I sometimes hear is -- a newcomer will say "this is hard", and someone more experienced will say "Oh, yeah, it's impossible to use bash. Nobody knows how to use it."  ----  还蛮有意思的，新手觉得太难，老鸟说这玩意儿不可能用，没人知道怎么用这玩意儿。
 
-那么要怎么从对一个东西毫不了解，过渡到能够基本正确使用一个工具或者语言呢？
+谁对 Bash 最了解？肯定是电脑！那么电脑里又有什么**工具**对 Bash 最了解？ ShellCheck！它能够发现 bash 中可能会出现的问题并且提示你，在上面的代码里，bash 不能很好的给出提示，但是配合这个工具能够让你尽快的定位问题，它会提醒你说：`|| echo "failed"` 不能在全局与 `set -e` 一起使用。那么有这么好的工具能够去解决 Bash 编写的问题，还记那么多琐碎的边界干什么？ **但很多人却不知道**直到我跟他们说了 shellCheck，他们甚至认为这是我发明的 Linter (笑。
 
-Julia 在原文中指明：谁对 Bash 最了解？肯定是电脑！那么电脑里又有什么**工具**对 Bash 最了解？ ShellCheck！它能够发现 bash 中可能会出现的问题并且提示你，在上面的代码里，bash 不能很好的给出提示，但是配合这个工具能够让你尽快的定位问题，他会提醒你说：`|| echo "failed"` 不能在全局与 `set -e` 一起使用。那么有这么好的工具能够去解决 Bash 编写的问题，还记那么多琐碎的边界干什么？ **但很多人却不知道**直到 Julia 跟他们说了 shellCheck，他们甚至认为这是 Julia 发明的 Linter (笑，
-
-紧接着他说：
 > So I think an incredible thing we can do is to reflect on the tools that we're using to reduce our cognitive load and all the things that we can't fit into our minds, and make sure our friends or coworkers know about them. ---- 所以我认为我们可以做一件难以置信的事情，就是反思我们用来减轻认知负担的工具，处理我们脑海中无法容纳的所有事物，并确保我们的朋友或同事了解它们。
 
-Julia 主张当遇到问题的时候可以及时求助，如果有人对他说了很多关于 Bash 出现的错误，他可能会选择解决这个问题。
+**在遇到错误的时候我们常常会分享这些错误以及解决的思路，在社区上有许多人对此非常热衷，他们是乐于助人且技术精湛，也许当遇到问题的时候可以及时求助，兴许就有许多人遇到过同种类的问题。**
 
 
-关于 HTTP，Julia 提到了一个故事：他有一个朋友跟他说一些新的开发人员正在努力解决 HTTP 给他们带来的问题，Julia 感到很困惑，HTTP 有什么难的？
+### HTTP
+关于 HTTP，有一个故事：我有一个朋友跟我说一些新的开发人员正在努力解决 HTTP 给他们带来的问题，我感到很困惑，HTTP 有什么难的？不过我的思想很快发生了转变，有个朋友问我说：为什么你设置的 HTTP 请求头如此重要？我思索片刻：“要从浏览器开始说起”，浏览器。。。浏览器！！！火狐有着两千万行的代码，从上世纪九十年代就开始迭代，自从人们发现有很多安全性的漏洞，浏览器安全模型已经有一百万次变更了。浏览器有太多需要了解的地方了。如果一个问题涉及到 2000 万行代码，那么会让人感到非常困惑。
+
+那么我们如何让它变得更容易呢？如何围绕这两千万行代码进行思考？
+
+这里就不得不说到 HTTP 的请求头，HTTP 标头太多了，随便看一下都有四十多个，还有很多非官方的标头，一眼望过去标头完全是懵逼的状态。不过我对常用的标头进行了总结，有15个请求标头，不过这是一个主观的清单，这组小的信息对我来说效果会更好。
+
+所以我的思考方式是：**把一个大列表变成小列表！**（我觉得可以延伸下：其实代入到生活里，将大的事情拆解为多个子模块，由易到难会让事情变得简单许多）。
