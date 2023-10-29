@@ -218,11 +218,58 @@ type WrappedTest = Wrapped<'1' | false, boolean>  // 'Y' | 'N'
 type Wrapped<T, B> = [T] extends [B] ? 'Y' : 'N'
 type WrappedTest2 = Wrapped<'1' | false, boolean>  // 'N'
 ```
+
 **但是**这依然没有解决如果第二个参数为联合类型的问题，不过既然 `1 | 2 extends 1 | 2 | 3` 成立，那么就让他反向过来 `1 | 2 | 3 extends 1 | 2` 不成立就好了！：
 ```ts
-type Res1 = Wrapped<'1' | '2', '1' | '2' | '3'>  // 'Y'
+type StrictConditional<A, B, Resolved, Rejected, Fallback = never> = 
+[A] extends [B]
+  ? [B] extends [A]
+    ? Resolved
+    : Rejected
+  : Fallback
+
+
+type Res1 = StrictConditional<1 | 2, 1 | 2 | 3, true, false>; // false
+type Res2 = StrictConditional<1 | 2 | 3, 1 | 2, true, false, false>; // false
+type Res3 = StrictConditional<1 | 2, 1 | 2, true, false>; // true
 ```
 
+最后再将类型结合起来，完整的 `ValueTypeScreening` 将是：
 ```ts
-type Conditional<Value, Conditional, REsolved, Rejected> = [Value] extends [Condition] ? Resolved : Rejected
+type StrictConditional<A, B, Resolved, Rejected, Fallback = never> = 
+  [A] extends [B]
+    ? [B] extends [A]
+      ? Resolved
+      : Rejected
+    : Fallback
+
+
+type StrictValueTypeScreening<T extends object, ValueType, Positive> = {
+  [K in keyof T]-?: StrictConditional<
+    T[K],
+    ValueType,
+    Positive extends true ? K : never,
+    Positive extends true ? never : K
+  >
+}[keyof T]
+
+
+type StrictPickByValueType<T extends object, ValueType> = Pick<T, StrictValueTypeScreening<T, ValueType, true>>
+
+type StrictOmitByValueType<T extends object, ValueType> = Pick<T, StrictValueTypeScreening<T, ValueType, false>>
+```
+
+
+接下来是基于结构的互斥工具类型，假设有一个用于描述用户信息的对象结构，除了共有的一些基础结构以外， VIP 用户和普通用户、游客这三种类型的用户各自拥有独特的字段。比如 vipExpires 代表 VIP 过期时间，仅属于 VIP 用户，promotionUsed 代表已领取过体验券，属于普通用户，而 referType 代表跳转来源，属于游客。
+
+用户要么拥有 vipExpires，要么拥有 promotionUsed 字段，但他不能两个都有。如果仅仅是交叉类型，并不能约束这个条件。为了表示不能同时拥有，可以使用 **never** 来进行实现：
+
+```ts
+interface VIP {
+  vipExpires: number;
+}
+
+interface CommonUser {
+  promotionUsed: boolean;
+}
 ```

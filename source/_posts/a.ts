@@ -54,3 +54,18 @@ type Wrapped<T, B> = T extends B ? 'Y' : 'N'
 
 
 type Res1 = Wrapped<false | '1', boolean>
+
+type Res2 = Wrapped<'1' | '2', '1' | '2' | '3'>
+
+
+
+interface VIP {
+  vipExpires: number;
+}
+
+interface CommonUser {
+  promotionUsed: boolean;
+}
+
+
+type VU<T, U> = Exclude<keyof T, keyof U>
