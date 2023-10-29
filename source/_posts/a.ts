@@ -41,7 +41,7 @@ type FunctionType = (...args: any[]) => any
 
 type FunctionKeys<T, FunctionType> = {
   [K in keyof T]-?: T[K] extends FunctionType ? K : never
-}
+}[keyof T]
 
 type TestFunctionKeys = FunctionKeys<{
   foo: () => void,
@@ -49,3 +49,8 @@ type TestFunctionKeys = FunctionKeys<{
   test: string
 }, FunctionType>
 
+
+type Wrapped<T, B> = T extends B ? 'Y' : 'N'
+
+
+type Res1 = Wrapped<false | '1', boolean>

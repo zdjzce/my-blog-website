@@ -171,3 +171,58 @@ type WhatWillWeGetEqual3 = "foo" | "bar" | never;
 ```
 这就是 ts 中分布式类型的规则，将联合类型组合起来然后依次访问。
 
+既然现在拿到了期望的属性名，那么不就可以拿到**这些属性组成的子结构**了吗：
+```ts
+type ExpectedPropKeys<T extends object, ValueType> = {
+  [K in keyof T]-?: T[K] extends ValueType ? K : never
+}[keyof T]
+
+
+type PickByValueType<T extends object, ValueType> = Pick<T, ExpectedPropKeys<T, ValueType>>
+```
+
+现在也将指定值类型进行剔除：
+```ts
+type FilteredProp<T extends object, ValueType> = {
+  [K in keyof T]-?: T[K] extends ValueType ? never : K
+}[keyof T]
+
+type PickFilteredValue<T extends object, ValueType> = Pick<T, FilteredProp<T, ValueType>>
+
+```
+
+如果需要把它们合并在一起，只需要引用第三个泛型就可以控制返回结果了：
+```ts
+type Conditional<Value, Resolved, Rejected> = Value extends boolean ? Resolved : Rejected
+
+type ValueTypeScreening<T extends object, ValueType, Positive> = {
+  [K in keyof T]-?: T[K] extends ValueType
+    ? Conditional<Positive, K, never>
+    : Conditional<Positive, never, K>
+}[keyof T]
+
+type PickValueType<T extends object, ValueType> = Pick<T, ValueTypeScreening<T, ValueType, true>>
+type OmitByValueType<T extends object, ValueType> = Pick<T, ValueTypeScreening<T, ValueType, false>>
+```
+
+如果考虑把 `Conditional` 类型改为更通用的，那么可以考虑加上第二个参数 `Condition`: 
+```ts
+type Conditional<Value, Condition, Resolved, Rejected> = Value extends Condition ? Resolved : Rejected
+```
+
+但是存在一种情况，即分布式类型条件：传入 `1 | 2 extends 1 | 2 | 3` 也能够被视为合法的，如果希望对联合类型进行全等比较。那么只要不满足裸类型参数条件就可以:
+```ts
+type Wrapped<T, B> = T extends B ? 'Y' : 'N'
+type WrappedTest = Wrapped<'1' | false, boolean>  // 'Y' | 'N'
+
+type Wrapped<T, B> = [T] extends [B] ? 'Y' : 'N'
+type WrappedTest2 = Wrapped<'1' | false, boolean>  // 'N'
+```
+**但是**这依然没有解决如果第二个参数为联合类型的问题，不过既然 `1 | 2 extends 1 | 2 | 3` 成立，那么就让他反向过来 `1 | 2 | 3 extends 1 | 2` 不成立就好了！：
+```ts
+type Res1 = Wrapped<'1' | '2', '1' | '2' | '3'>  // 'Y'
+```
+
+```ts
+type Conditional<Value, Conditional, REsolved, Rejected> = [Value] extends [Condition] ? Resolved : Rejected
+```
