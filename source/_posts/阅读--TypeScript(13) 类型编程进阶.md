@@ -352,3 +352,22 @@ export type ObjectKeysComplement<
   U extends PlainObjectType
 > = Complement<keyof T, keyof U>;
 ```
+
+
+接着可以使用工具类型将属性提取出来：
+```ts
+export type ObjectIntersection<
+  T extends PlainObjectType,
+  U extends PlainObjectType
+> = Pick<T, ObjectKeysIntersection<T, U>>;
+
+export type ObjectDifference<
+  T extends PlainObjectType,
+  U extends PlainObjectType
+> = Pick<T, ObjectKeysDifference<T, U>>;
+
+export type ObjectComplement<T extends U, U extends PlainObjectType> = Pick<
+  T,
+  ObjectKeysComplement<T, U>
+>;
+```
