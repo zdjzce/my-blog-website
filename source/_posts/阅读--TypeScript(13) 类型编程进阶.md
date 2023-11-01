@@ -325,5 +325,30 @@ type Complement<A, B extends A> = Difference<A, B>;
 
 对象属性名的版本：
 ```ts
+// 使用更精确的对象类型描述结构
+export type PlainObjectType = Record<string, any>;
 
+// 属性名并集
+export type ObjectKeysConcurrence<
+  T extends PlainObjectType,
+  U extends PlainObjectType
+> = keyof T | keyof U;
+
+// 属性名交集
+export type ObjectKeysIntersection<
+  T extends PlainObjectType,
+  U extends PlainObjectType
+> = Intersection<keyof T, keyof U>;
+
+// 属性名差集
+export type ObjectKeysDifference<
+  T extends PlainObjectType,
+  U extends PlainObjectType
+> = Difference<keyof T, keyof U>;
+
+// 属性名补集
+export type ObjectKeysComplement<
+  T extends U,
+  U extends PlainObjectType
+> = Complement<keyof T, keyof U>;
 ```
