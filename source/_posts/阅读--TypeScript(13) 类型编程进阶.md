@@ -272,4 +272,58 @@ interface VIP {
 interface CommonUser {
   promotionUsed: boolean;
 }
+
+type Without<T, U> = {
+  [K in Exclude<T, U>]?: never;
+}
+
+type XOR<T, U> = (Without<T, U> & U) | (Without<U, T> & T)
+
+type XORUser = XOR<VIP, CommonUser>
+```
+
+首先看 `Without<T, U> & U` 是干什么的，在内部遍历了 `Exclude<T, U>` 的结果，也就是将 T 中 U 的子类型进行了去除，只保留 T 自身所有的属性，再将这个属性变为 never。最后再与 U 进行交叉。结果显而易见，如果把 VIP 与 CommonUser 分别传入，它的类型其实是这样的：
+```ts
+{
+  vipExpires?: never;
+  promotionUsed: boolean;
+}
+```
+
+再与后方的联合类型结合起来，传入 CommonUser 与 VIP，得到的结果会是:
+```ts
+{
+  vipExpires: number;
+  promotionUsed?: never;
+}
+```
+
+这种情况下我们如果传入单个属性，不论是哪个都是合法的，但一旦两个属性都传，将会报错！符合了我们对 “用户” 这个设定所包含的内容。
+
+
+### 集合工具类型
+对于前面的类型，更多的思路是将对象转换为一维的属性集合，再将他们扩展至二维的对象。
+
+复习一下前面的一维集合：
+```ts
+// 并集
+type Concurrence<A, B> = A | B
+
+// 交集
+type Intersection<A, B> = A extends B ? A : never
+
+// 差集 在 A 中去除 B 的成员
+type Difference<A, B> = A extends B ? never : A
+
+// 集合 A 和集合 B 的补集，也就是属于 A 但不属于 B 的元素。
+type Complement<A, B extends A> = Difference<A, B>;
+```
+
+差集 Difference<A, B> 是在集合 A 中去除集合 B 的元素，也就是求的是 A 相对于 B 的独有元素。
+补集 Complement<A, B> 是在全集 A 中去除集合 B 的元素，也就是求的是不属于 B 但属于全集 A 的元素。
+
+
+对象属性名的版本：
+```ts
+
 ```

@@ -69,3 +69,18 @@ interface CommonUser {
 
 
 type VU<T, U> = Exclude<keyof T, keyof U>
+
+
+type Without222<T, U> = {
+  [K in keyof T]?: never
+}
+
+
+type Without<T, U> = {
+  [K in Exclude<keyof T, keyof U>]?: never
+}
+
+type XOR<T, U> = (Without<T, U> & U) | (Without<U, T> & T)
+
+
+type CUser = Flatten<XOR<VIP, CommonUser>>
