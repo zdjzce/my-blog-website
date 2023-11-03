@@ -315,7 +315,7 @@ type Intersection<A, B> = A extends B ? A : never
 // 差集 在 A 中去除 B 的成员
 type Difference<A, B> = A extends B ? never : A
 
-// 集合 A 和集合 B 的补集，也就是属于 A 但不属于 B 的元素。
+// 集合 A 和集合 B 的补集，要求 B 必须是 A 的子集，也就是说相当于 A 是全集，在全集中排除 A 中 B 的子类型。
 type Complement<A, B extends A> = Difference<A, B>;
 ```
 
@@ -353,6 +353,16 @@ export type ObjectKeysComplement<
 > = Complement<keyof T, keyof U>;
 ```
 
+关于 `ObjectKeysComplement` 这个属性名补集，初写我觉得很疑惑，为什么不直接这样写呢：
+```ts
+// 错误写法
+export type ObjectKeysComplement<
+  T extends PlainObjectType,
+  U extends T
+> = Complement<keyof T, keyof U>;
+```
+他会报个错说 U 不能满足于约束 `keyof T`，很奇怪啊，明明 U 是 T 的子类型呀，后面转念一想，作为全集的 T，自然是要比 U 的属性要多的，所以直接 extends 一个 U，能够让 Complement 第二个泛型槽位符合条件。
+
 
 接着可以使用工具类型将属性提取出来：
 ```ts
@@ -370,4 +380,54 @@ export type ObjectComplement<T extends U, U extends PlainObjectType> = Pick<
   T,
   ObjectKeysComplement<T, U>
 >;
+```
+
+对于并集，并不能使用联合类型实现，因为不能控制**同名属性**的优先级。
+依然可以按照之前的思路，将一个对象拆分成多个子结构，拆分完毕后再进行合并，合并对象的话，其实就是将各自独特的属性组合再加上同名属性组成的部分就可以了。
+
+再回顾交叉补集的类型，可以求：
+1. T 比 U 多的独立部分，差集
+2. U 比 T 多的独立部分，差集
+3. T 与 U 的交集
+
+用类型来体现即：
+```ts
+type MergeType<T extends PlainObjectType, U extends PlainObjectType> = 
+  ObjectDifference<T, U> & 
+  ObjectDifference<U, T> & 
+  ObjectIntersection<U, T>
+```
+
+
+
+### 模式匹配工具类型
+
+之前学过的 infer，在函数模式匹配中会较为常用，例如需要提取函数参数中最后一个类型，可以考虑先提取前面的再一步步 infer 出类型:
+```ts
+type LastParameter<T extends Fun> = T extends (arg: infer P) => any
+  ? P
+  : T extends (...args: infer R) => any
+    ? R extends [...any, infer Q]
+      ? Q
+      : never
+    : never
+
+
+
+type FooFunc = LastParameter<(arg: number) => any> // number
+type FooBar = LastParameter<(...args: string[]) => any> // string
+type FooBaz = LastParameter<(...args: [string, never]) => any> // never
+
+
+```
+
+而 Promise 终的 PromiseValue 的类型则较为严谨：
+```ts
+type Awaited<T> = T extends null | undefined
+  ? T 
+  : T extends object & { then(onfulfilled: infer F): any }
+  ? F extends (value: infer V, ...args: any) => any 
+    ? Awaited<V>
+    : never
+  : T;
 ```

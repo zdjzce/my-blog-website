@@ -84,3 +84,43 @@ type XOR<T, U> = (Without<T, U> & U) | (Without<U, T> & T)
 
 
 type CUser = Flatten<XOR<VIP, CommonUser>>
+
+
+type UserA = {
+  name: string
+  age: number
+  inhabit: string
+}
+
+type UserB = {
+  name: string
+  age: number
+}
+
+export type PlainObjectType = Record<string, any>;
+
+type Difference<A, B> = B extends A ? never: A
+
+
+type ObjectDifference<T extends PlainObjectType, U extends PlainObjectType> = Pick<T, Difference<keyof T, keyof U>>
+
+
+
+type Fun = (...args: any) => any
+
+
+type LastParameter<T extends Fun> = T extends (arg: infer P) => any
+  ? P
+  : T extends (...args: infer R) => any
+    ? R extends [...any, infer Q]
+      ? Q
+      : never
+    : never
+
+
+
+type FooFunc = LastParameter<(arg: number) => any> // number
+type FooBar = LastParameter<(...args: string[]) => any> // string
+type FooBaz = LastParameter<(...args: [string, never]) => any> // never
+
+
