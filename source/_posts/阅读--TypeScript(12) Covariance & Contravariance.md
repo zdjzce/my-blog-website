@@ -36,7 +36,7 @@ acceptDogCovariance(new Greyhound()) // ok
 可以看到协变只接受类型本身和子类型。
 
 ### Contravariance
-协变可以接受父类型但是不可以接受子类型。
+逆变可以接受父类型但是不可以接受子类型。
 ```ts
 const acceptDogContravariance = function (value: Contravariance<Dog>) { ... }
 
