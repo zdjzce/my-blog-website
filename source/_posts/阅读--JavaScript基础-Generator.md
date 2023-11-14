@@ -160,4 +160,15 @@ gen
   .then((response) => gen.next(response).value)
 ```
 
+
+在生成器函数 getResult 中写入各种异步函数, 使用 next 来控制生成器的暂停和恢复执行. 通常, 会把执行生成器的代码封装成一个函数, 这个函数驱动了 getResult 函数继续往下执行, 我们把这个执行生成器代码的函数称为执行器, 比如著名的 co 工具就是干这事的.
+```js
+co(getResult())
+```
+
 ### async / await 
+基于前文所述的 Promise 与 Generator 写出来的代码像是同步执行，可读性较高。在 ES7 中有了更好的替代方案，也就是 `async/await`。它改进了生成器的缺点, 提供了在**不阻塞主线程**的情况下使用同步代码实现异步访问资源的能力.
+
+ async 是一个通过异步执行并隐式返回 Promise 作为结果的函数. 即如果在 async 函数里面使用了 await, 那么此时 async 函数就会暂停执行, 并等待合适的时机来恢复执行。如果使用 await 等待一个没有 resolve 的 Promise, 那么这也就意味着, async 指向的函数会一直等待下去。
+
+ 和生成器函数一样, 使用了 async 声明的函数在执行时, 也是一个单独的协程, 我们可以使用 await 来暂停该协程, 由于 await 等待的是一个 Promise 对象, 我们可以 resolve 来恢复该协程。
