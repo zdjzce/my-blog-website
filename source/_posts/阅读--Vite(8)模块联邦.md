@@ -185,7 +185,7 @@ onMounted(() => {
 
 ```
 可以发现，在本地模块 a 中引用 b 模块导出来的组件与方法，都能够正常使用了：
-![avatar]('../my-image/module_federation.jpg')
+![avatar]('/my-image/module_federation.jpg')
 
 让我们来梳理一下整体的使用流程:
 
@@ -273,7 +273,7 @@ export { dynamicLoadingCss, get, init }
 看到关键方法后，已经显而易见了：本地模块在导入运行时容器并访问指定模块时，会走上文代码中的 `get` 方法，然后拿到对应的模块。
 
 这就是完整的远程模块运行时容器与本地模块交互的流程：
-![avatar]('../my-image/module_federation2.jpg')
+![avatar]('/my-image/module_federation2.jpg')
 
 
 

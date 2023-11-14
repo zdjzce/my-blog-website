@@ -13,7 +13,7 @@ categories:
 生成器往往是开发者容易忽略的一个 js 特性，虽然平常我们并不会直接使用 Generator，但基于 Promise 与 生成器实现的 `async/await` 却是必不可少。我认为了解生成器的全貌还是很有必要的。
 
 
-## 迭代器
+### 迭代器
 迭代器通常在各类语言都会实现，并且也作为一种设计模式存在。在 JS 中，迭代器被用于可迭代对象，任何实现迭代器的对象都可以被称为**可迭代对象**，原生的 JS 可迭代对象包括:
 1. Array
 2. Map
@@ -52,7 +52,7 @@ console.log(iterator.next()) // { value: undefined, done: true }
 迭代器有一个 next 方法, 它返回一个对象：对象的 value 属性是下一个值, done 属性是一个布尔值, 表示迭代是否结束。
 而实现迭代器对象则是在对象中添加 `Symbol.iterator` 方法，并且返回刚刚所说的 **next** 方法。
 
-## 生成器
+### 生成器
 为什么我们要大费周章的说迭代器？虽然迭代器很有用，但需要去维护内部的状态。生成器则提供了更强大的选择，它可以使非连续执行的函数，并且也可以作为迭代算法：
 
 将上面的可迭代器对象里面的迭代器更改为生成器后是这样的：
@@ -79,7 +79,7 @@ console.log(iterator.next()) // { value: undefined, done: true }
 可以看到实现的效果是一样的。我们在 function 后方加上了 `*` 符号，并且在循环内部使用了 `yield` 关键字，在调用生成器函数后与预期结果一致，生成器函数调用后会返回 **next** 方法。我们**并不需要维护**迭代状态以及下个值，所以其实它比迭代器有着更高的自由度。
 
 
-## 生成器与协程
+### 生成器与协程
 为什么生成器能够随时暂停，随时恢复？这就不得不提到 **协程(Coroutine)** 的概念。一个进程可能包含多个线程，而一个线程又可能包含多个协程。不过一个线程中同时只能执行一个协程任务。如果当前执行任务的是 A 协程，要启动 B 协程，就需要从 A 上将主线程控制权交给 B，如果从 A 协程启动 B 协程，可以把 A 协程成为 B 的父协程。
 
 一个很重要的概念是：`协程并不是被操作系统所管理的，它完全由程序控制，好处在于性能得到了很大的提升，不会想线程切换那样消耗资源`
@@ -125,7 +125,7 @@ console.log('main 4')
 // main 4
 ```
 
-![avatar]('../my-image/xiecheng.webp')
+![avatar]('/my-image/xiecheng.webp')
 上图表示了这段代码的执行过程:
 
 通过调用生成器函数 genDemo 来创建一个协程 gen, 创建之后, gen 协程并没有立即执行.
@@ -133,16 +133,31 @@ console.log('main 4')
 当协程正在执行的时候, 可以通过 yield 关键字来暂停 gen 协程的执行, 并返回主要信息给父协程.
 如果协程在执行期间, 遇到了 return 关键字, 那么 JavaScript 引擎会结束当前协程, 并将 return 后面的内容返回给父协程.
 
-## 生成器与调用栈
+### 生成器与调用栈
 
+### 生成器与 Promise
+生成器在精细控制异步场景的情况下会特别好用，假设有个一步函数用来获取用户 ID，获取成功后立即调用另一个异步函数，获取成功后返回用户名。
+像这样的场景我们很容易想到使用 `Promise`, `async/await`。不过这里使用生成器来完成。
 
-## 可迭代对象
+```js
+function* getResult() {
+  const userIdRes = yield fetch('/id')
+  const { id } = yield userIdRes.json()
 
-## 集合的迭代器
+  const userNameRes = yield fetch('/name', { id })
+  const { name } = yield userNameRes.json()
 
-## 迭代器高级功能
+  console.log(name)
+}
 
+const gen = getResult()
 
-## 生成器与 Promise
+gen
+  .next()
+  .value.then((response) => gen.next(response).value)
+  .then((response) => gen.next(response).value)
+  .then((response) => gen.next(response).value)
+  .then((response) => gen.next(response).value)
+```
 
-## async / await 
+### async / await 
