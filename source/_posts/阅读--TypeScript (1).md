@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 TypeScript 已被开发人员普遍接受，和 ES6 语法以及前端框架一起，被视为前端开发领域的基础工具。但是，关于 TypeScript 的质疑却一直没有减少，比如：

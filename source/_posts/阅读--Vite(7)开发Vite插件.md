@@ -6,6 +6,7 @@ tags:
   - Vite
 categories:
   - [阅读]
+  - [Vite]
 ---
 
 ### 1. Vite 的开发环境调用

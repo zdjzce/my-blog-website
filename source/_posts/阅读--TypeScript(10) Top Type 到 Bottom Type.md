@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 TS 中对所有类型都明确了兼容关系，也就是类型层级。从最上层的 any, unknow, 到最底层的 never。

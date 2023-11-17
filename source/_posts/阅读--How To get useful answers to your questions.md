@@ -6,6 +6,7 @@ tags:
   - 英文博客
 categories:
   - [阅读]
+  - [英文博客]
 ---
 
 本文对 Julia Evans 的这篇博客进行总结，如何有效提问以获得有帮助的答案？[原文链接](https://jvns.ca/blog/2021/10/21/how-to-get-useful-answers-to-your-questions/)

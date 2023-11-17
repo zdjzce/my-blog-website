@@ -6,6 +6,7 @@ tags:
   - Vite
 categories:
   - [阅读]
+  - [Vite]
 ---
 
 Vite 是 `no-bundle` 的构建工具，相比于传统的 Webpack, 能做到开发时的按需编译，而不用先打包完再加载。

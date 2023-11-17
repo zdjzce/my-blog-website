@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 ### 内置类型：any 、unknown 与 never

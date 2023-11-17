@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 ### 前言

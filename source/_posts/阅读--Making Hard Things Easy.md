@@ -6,6 +6,7 @@ tags:
   - Julia Evans
 categories:
   - [阅读]
+  - [英文博客]
 ---
 
 原文链接：https://jvns.ca/blog/2023/10/06/new-talk--making-hard-things-easy/ ，本文对 Julia Evans 写的这篇博客进行总结。

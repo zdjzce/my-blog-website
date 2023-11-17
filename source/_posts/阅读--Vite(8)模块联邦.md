@@ -1,11 +1,12 @@
 ---
-title: 阅读--Vite(17) 模块联邦
+title: 阅读--Vite(8) 模块联邦
 date: 2023-09-22 20:23:00
 tags:
   - 阅读
   - Vite
 categories:
   - [阅读]
+  - [Vite]
 ---
 
 2020 年，Webpack 提出了 `Module Federation（模块联邦）`，这个特性很好地解决了 `多应用模块复用` 的问题，不仅在 Webpack，在 Vite 中同样可以实现这个特性。

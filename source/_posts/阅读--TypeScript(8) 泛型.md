@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 ### 类型别名中的泛型

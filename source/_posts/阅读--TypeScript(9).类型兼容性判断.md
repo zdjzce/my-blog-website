@@ -6,6 +6,7 @@ tags:
   - TypeScript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 在 TS 中， 有种概念叫做**结构化类型系统**，它有着自己的比较方式。以及另一种类型系统：标称类型系统。

@@ -6,6 +6,7 @@ tags:
   - typescript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 
 ### 属性修饰

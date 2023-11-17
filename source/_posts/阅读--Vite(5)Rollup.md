@@ -6,6 +6,7 @@ tags:
   - Rollup
 categories:
   - [阅读]
+  - [Vite]
 ---
 ### 快速使用
 ```zsh

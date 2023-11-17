@@ -7,6 +7,7 @@ tags:
   - typescript
 categories:
   - [阅读]
+  - [TypeScript]
 ---
 在 TypeScript 中，协变（Covariance）、逆变（Contravariance）和双变（Bivariant）是类型系统中的重要概念。它们描述了类型如何在继承或实现接口时相互关联。
 

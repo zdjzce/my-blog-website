@@ -7,6 +7,7 @@ tags:
   - Esbuild
 categories:
   - [阅读]
+  - [Vite]
 ---
 
 Vite 的 devServer 就是使用了 Esbuild ，作为 Vite 的双引擎之一，在很多阶段都有关键的作用(依赖预编译，TS 语法转译，代码压缩)，它是 Vite 取得高性能的关键。
