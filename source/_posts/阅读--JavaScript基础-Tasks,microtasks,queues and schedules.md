@@ -59,3 +59,72 @@ setTimeout
 注：在这里原作者准备了一个很好的交互可以帮助理解。
 
 
+### Tests
+```html
+<div class="outer">
+  <div class="inner"></div>
+</div>
+```
+
+```js
+// Let's get hold of those elements
+var outer = document.querySelector('.outer');
+var inner = document.querySelector('.inner');
+
+// Let's listen for attribute changes on the
+// outer element
+new MutationObserver(function () {
+  console.log('mutate');
+}).observe(outer, {
+  attributes: true,
+});
+
+// Here's a click listener…
+function onClick() {
+  console.log('click');
+
+  setTimeout(function () {
+    console.log('timeout');
+  }, 0);
+
+  Promise.resolve().then(function () {
+    console.log('promise');
+  });
+
+  outer.setAttribute('data-random', Math.random());
+}
+
+// …which we'll attach to both elements
+inner.addEventListener('click', onClick);
+outer.addEventListener('click', onClick);
+
+```
+当我们点击 inner 会发生什么？
+打印结果首先是：'click' -> 'promise' -> 'mutate'
+具体步骤为
+1. 直接执行 onClick 函数，打印 'click'
+2. 遇到 setTimeout 加入宏任务队列  宏任务队列: ['setTimeout']
+3. .then 的函数加入微任务队列  微任务队列 ['promise']
+4. 同步设置 outer 的属性
+5. 触发 observer 的监听，加入微任务队列  微任务队列 ['promise', 'mutate']
+6. 开始执行微任务，打印 promise
+7. 打印 mutate
+
+到此为止微任务都执行完毕了，是不是还要接着执行宏任务？非也，每个浏览器处理事件的行为不大一样，原文作者进行了叙述。在 chrome 里，会直接冒泡到 outer，再执行一遍上述步骤，也会打印 `'click' -> 'promise' -> 'mutate'` 这些任务都执行完毕后，才会打印最后的 timeout，打印两遍。
+所以最后的结果为：`'click' -> 'promise' -> 'mutate' -> 'click' -> 'promise' -> 'mutate' -> timeout -> timeout`
+
+这其实有点头皮发麻，为什么这么说，因为 EventListener 是同步调用的，他们没有优先级，可以在事件循环的任何阶段调用。也就是说执行顺序完全就是看浏览器了。。。
+
+
+更头皮发麻的还有，如果使用 click() 方法直接触发事件打印结果更是奇怪了：
+```js
+click
+click
+promise
+mutate
+promise
+timeout
+timeout
+```
+
+总之我看到这里已经麻了，将 DOM 操作与事件循环结合起来看，就变得复杂起来。这里的 click() 会导致事件同步调度，与上面的输出结果完全不同了，并且后面也没有再触发一次 observer 的打印。。。
